@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta charset="UTF-8" />
+  <title>Blur on Any Zoom</title>
+  <style>
+    body{
+      background: black;
+    }
+    .image-container {
+      width: 80%;
+      overflow: hidden;
+      margin: 0 auto;
+    }
+
+    .image-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: filter 0.3s ease;
+      border-radius: 20px;
+    }
+
+    .blurred {
+      filter: blur(3px);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="image-container">
+    <img src="image/sample.jpg" id="mainImage" />
+  </div>
+
+  <script>
+    const img = document.getElementById('mainImage');
+    const baseDevicePixelRatio = window.devicePixelRatio;
+    let lastZoom = 1;
+
+    function checkZoom() {
+      const viewportScale = window.visualViewport?.scale || 1;
+      const dprScale = window.devicePixelRatio / baseDevicePixelRatio;
+
+      // Use the larger of the two methods
+      const currentZoom = Math.max(viewportScale, dprScale);
+
+      if (Math.abs(currentZoom - 1) > 0) {
+        img.classList.add('blurred');
+      } else {
+        img.classList.remove('blurred');
+      }
+
+      lastZoom = currentZoom;
+    }
+
+    // Listen to various events that may reflect zoom changes
+    window.addEventListener('resize', checkZoom);
+    window.visualViewport?.addEventListener('resize', checkZoom);
+    window.addEventListener('wheel', checkZoom);
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && ['+', '-', '0'].includes(e.key)) {
+        setTimeout(checkZoom, 100);
+      }
+    });
+
+    // Initial check
+    checkZoom();
+  </script>
+
+</body>
+</html>
