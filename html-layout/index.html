@@ -1,72 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta charset="UTF-8" />
-  <title>Blur on Any Zoom</title>
   <style>
-    body{
-      background: black;
-    }
-    .image-container {
-      width: 80%;
-      overflow: hidden;
-      margin: 0 auto;
-    }
-
-    .image-container img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: filter 0.3s ease;
-      border-radius: 20px;
-    }
-
-    .blurred {
-      filter: blur(3px);
+    body {
+      margin: 0;
     }
   </style>
+
+  <script src="//cdn.jsdelivr.net/npm/globe.gl"></script>
 </head>
+
 <body>
+  <div id="globeViz"></div>
 
-  <div class="image-container">
-    <img src="image/sample.jpg" id="mainImage" />
-  </div>
+  <script type="module">
+    import { scaleSequentialSqrt } from 'https://esm.sh/d3-scale';
+    import { interpolateYlOrRd } from 'https://esm.sh/d3-scale-chromatic';
 
-  <script>
-    const img = document.getElementById('mainImage');
-    const baseDevicePixelRatio = window.devicePixelRatio;
-    let lastZoom = 1;
+    const colorScale = scaleSequentialSqrt(interpolateYlOrRd);
+    const targetCountries = ['India', 'United States', 'United Kingdom', 'Japan', 'Australia'];
 
-    function checkZoom() {
-      const viewportScale = window.visualViewport?.scale || 1;
-      const dprScale = window.devicePixelRatio / baseDevicePixelRatio;
+    // GDP per capita (avoiding countries with small pop)
+    const getVal = feat => feat.properties.GDP_MD_EST / Math.max(1e5, feat.properties.POP_EST);
 
-      // Use the larger of the two methods
-      const currentZoom = Math.max(viewportScale, dprScale);
+    fetch('./places.geojson').then(res => res.json()).then(countries => {
+      const maxVal = Math.max(...countries.features.map(getVal));
+      colorScale.domain([0, maxVal]);
 
-      if (Math.abs(currentZoom - 1) > 0) {
-        img.classList.add('blurred');
-      } else {
-        img.classList.remove('blurred');
-      }
-
-      lastZoom = currentZoom;
-    }
-
-    // Listen to various events that may reflect zoom changes
-    window.addEventListener('resize', checkZoom);
-    window.visualViewport?.addEventListener('resize', checkZoom);
-    window.addEventListener('wheel', checkZoom);
-    window.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && ['+', '-', '0'].includes(e.key)) {
-        setTimeout(checkZoom, 100);
-      }
+      const world = new Globe(document.getElementById('globeViz'))
+        .globeImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/earth-night.jpg')
+        .backgroundImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/night-sky.png')
+        .lineHoverPrecision(0)
+        .polygonsData(countries.features.filter(d => d.properties.ISO_A2 !== 'AQ'))
+        .polygonAltitude(0.06)
+        .polygonCapColor(feat =>
+          targetCountries.includes(feat.properties.ADMIN) ? '#ef7717' : '#fff4b2'
+        )
+        .polygonSideColor(() => 'rgba(0, 100, 0, 0.15)')
+        .polygonStrokeColor(() => '#000')
+        .polygonLabel(({ properties: d }) => `
+          <b>${d.ADMIN} (${d.ISO_A2})</b> <br />
+        `)
+        .onPolygonHover(hoverD => world
+          .polygonAltitude(d => d === hoverD ? 0.12 : 0.06)
+        )
+        .polygonsTransitionDuration(300);
     });
-
-    // Initial check
-    checkZoom();
   </script>
-
 </body>
-</html>
