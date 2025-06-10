@@ -1,48 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
-    body {
-      margin: 0;
+    body { margin: 0; }
+    svg { width: 100%; height: 100vh; }
+    .tooltip {
+      position: absolute;
+      padding: 5px 10px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      pointer-events: none;
+      border-radius: 4px;
+      font-size: 12px;
     }
   </style>
-
-  <script src="//cdn.jsdelivr.net/npm/globe.gl"></script>
 </head>
-
 <body>
-  <div id="globeViz"></div>
+  <svg></svg>
+  <div class="tooltip" style="opacity: 0;"></div>
 
-  <script type="module">
-    import { scaleSequentialSqrt } from 'https://esm.sh/d3-scale';
-    import { interpolateYlOrRd } from 'https://esm.sh/d3-scale-chromatic';
+  <script>
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const svg = d3.select("svg");
+    const tooltip = d3.select(".tooltip");
 
-    const colorScale = scaleSequentialSqrt(interpolateYlOrRd);
-    const targetCountries = ['India', 'United States', 'United Kingdom', 'Japan', 'Australia'];
+    const targetCountries = ['India', 'USA', 'United Kingdom', 'Japan', 'Australia'];
+    const highlightColor = '#ef7717';
+    const defaultColor = '#fff4b2';
 
-    // GDP per capita (avoiding countries with small pop)
-    const getVal = feat => feat.properties.GDP_MD_EST / Math.max(1e5, feat.properties.POP_EST);
+    const projection = d3.geoMercator()
+      .scale(130)
+      .translate([width / 2, height / 1.5]);
 
-    fetch('./places.geojson').then(res => res.json()).then(countries => {
-      const maxVal = Math.max(...countries.features.map(getVal));
-      colorScale.domain([0, maxVal]);
+    const path = d3.geoPath().projection(projection);
 
-      const world = new Globe(document.getElementById('globeViz'))
-        .globeImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/earth-night.jpg')
-        .backgroundImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/night-sky.png')
-        .lineHoverPrecision(0)
-        .polygonsData(countries.features.filter(d => d.properties.ISO_A2 !== 'AQ'))
-        .polygonAltitude(0.06)
-        .polygonCapColor(feat =>
-          targetCountries.includes(feat.properties.ADMIN) ? '#ef7717' : '#fff4b2'
-        )
-        .polygonSideColor(() => 'rgba(0, 100, 0, 0.15)')
-        .polygonStrokeColor(() => '#000')
-        .polygonLabel(({ properties: d }) => `
-          <b>${d.ADMIN} (${d.ISO_A2})</b> <br />
-        `)
-        .onPolygonHover(hoverD => world
-          .polygonAltitude(d => d === hoverD ? 0.12 : 0.06)
-        )
-        .polygonsTransitionDuration(300);
+    // Load GeoJSON world data
+    d3.json("./places.geojson").then(data => {
+      svg.selectAll("path")
+        .data(data.features)
+        .join("path")
+        .attr("d", path)
+        .attr("fill", d => {
+          return targetCountries.includes(d.properties.name) ? highlightColor : defaultColor;
+        })
+        .attr("stroke", "#333")
+        .attr("stroke-width", 0.5)
+        .on("mouseover", function (event, d) {
+          tooltip.transition().duration(200).style("opacity", .9);
+          tooltip.html(`<strong>${d.properties.name}</strong>`)
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 20) + "px");
+        })
+        .on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
     });
   </script>
 </body>
+</html>
