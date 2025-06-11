@@ -26,42 +26,6 @@
       opacity: 0;
       transition: opacity 0.3s;
     }
-
-    @keyframes pulse {
-      0%, 100% {
-        r: 1;
-        opacity: 0.7;
-      }
-      50% {
-        r: 1.2;
-        opacity: 1;
-      }
-    }
-
-    .pulse-circle {
-      animation: heartbeat 1.5s ease-in-out infinite;
-      transform-box: fill-box;
-      transform-origin: center;
-    }
-
-    @keyframes heartbeat {
-      /* 0% {
-        transform: scale(0.5);
-        opacity: 0.25;
-      } */
-      30% {
-        transform: scale(1.3);
-        opacity: 0.5;
-      }
-      60% {
-        transform: scale(1);
-        opacity: 0.75;
-      }
-      100% {
-        transform: scale(1);
-        opacity: 1;
-      }
-    }
   </style>
 </head>
 
@@ -103,54 +67,77 @@
         .attr("stroke", "#333")
         .attr("stroke-width", 0.5);
 
-      // Draw client data with pulsing circles inside <g>
-      svg.selectAll("g.client-group")
-        .data(clientData)
-        .enter()
-        .append("g")
-        .attr("class", "client-group")
-        .attr("transform", d => {
-          const [x, y] = projection([d.lon, d.lat]);
-          return `translate(${x}, ${y})`;
-        })
-        .each(function (d) {
-          d3.select(this)
-            .append("circle")
-            .attr("r", d.clients * 8)
-            .attr("class", "pulse-circle")
-            .style("fill", "#ef7717")
-            .style("stroke", "#fff")
-            .style("stroke-width", 1)
-            .style("opacity", 0.75);
-        })
-        .on("mouseover", function (event, d) {
-          tooltip.transition().duration(200).style("opacity", 0.9);
-          tooltip.html(`<strong>${d.name}</strong><br>Clients: ${d.clients}`)
-            .style("left", (event.pageX + 10) + "px")
-            .style("top", (event.pageY - 20) + "px");
-        })
-        .on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
+      // Radar pulse animation function
+      function createRadarPulse(x, y, baseRadius, color = "#ef7717") {
+        const circle = svg.append("circle")
+          .attr("cx", x)
+          .attr("cy", y)
+          .attr("r", baseRadius)
+          .style("stroke", color)
+          .style("stroke-width", 2)
+          .style("fill", "none")
+          .style("opacity", 0.6);
 
-      // Draw office locations as small dots (no animation)
-      svg.selectAll("circle.office")
-        .data(officeLocations)
-        .enter()
-        .append("circle")
-        .attr("class", "office")
-        .attr("class", "pulse-circle")
-        .attr("cx", d => projection([d.lon, d.lat])[0])
-        .attr("cy", d => projection([d.lon, d.lat])[1])
-        .attr("r", 3)
-        .style("fill", "#00bcd4")
-        .style("stroke", "#fff")
-        .style("stroke-width", 1)
-        .on("mouseover", function (event, d) {
-          tooltip.transition().duration(200).style("opacity", 0.9);
-          tooltip.html(`<strong>${d.name}</strong>`)
-            .style("left", (event.pageX + 10) + "px")
-            .style("top", (event.pageY - 20) + "px");
-        })
-        .on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
+        circle.transition()
+          .duration(2000)
+          .ease(d3.easeCubicOut)
+          .attr("r", baseRadius * 4)
+          .style("opacity", 0)
+          .on("end", () => {
+            circle.remove();
+            createRadarPulse(x, y, baseRadius, color); // loop again
+          });
+      }
+
+      // Clients with radar effect
+      clientData.forEach(d => {
+        const [x, y] = projection([d.lon, d.lat]);
+        const baseRadius = d.clients * 5;
+
+        // Static dot
+        svg.append("circle")
+          .attr("cx", x)
+          .attr("cy", y)
+          .attr("r", baseRadius)
+          .style("fill", "#ef7717")
+          .style("stroke", "#fff")
+          .style("stroke-width", 1)
+          .on("mouseover", function (event) {
+            tooltip.transition().duration(200).style("opacity", 0.9);
+            tooltip.html(`<strong>${d.name}</strong><br>Clients: ${d.clients}`)
+              .style("left", (event.pageX + 10) + "px")
+              .style("top", (event.pageY - 20) + "px");
+          })
+          .on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
+
+        // Radar pulse
+        createRadarPulse(x, y, baseRadius, "#ef7717");
+      });
+
+      // Offices with radar effect
+      officeLocations.forEach(d => {
+        const [x, y] = projection([d.lon, d.lat]);
+        const baseRadius = 4;
+
+        // Static dot
+        svg.append("circle")
+          .attr("cx", x)
+          .attr("cy", y)
+          .attr("r", baseRadius)
+          .style("fill", "#00bcd4")
+          .style("stroke", "#fff")
+          .style("stroke-width", 1)
+          .on("mouseover", function (event) {
+            tooltip.transition().duration(200).style("opacity", 0.9);
+            tooltip.html(`<strong>${d.name}</strong>`)
+              .style("left", (event.pageX + 10) + "px")
+              .style("top", (event.pageY - 20) + "px");
+          })
+          .on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
+
+        // Radar pulse
+        createRadarPulse(x, y, baseRadius, "#00bcd4");
+      });
     });
   </script>
 </body>
