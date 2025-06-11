@@ -91,7 +91,7 @@
 
       weightageData.forEach(d => {
         const [x, y] = projection([d.lon, d.lat]);
-        const baseRadius = d.weightages * 5;
+        const baseRadius = d.weightages * 3;
 
         svg.append("circle")
           .attr("cx", x)
@@ -113,7 +113,7 @@
 
       officeLocations.forEach(d => {
         const [x, y] = projection([d.lon, d.lat]);
-        const baseRadius = 4;
+        const baseRadius = 5;
 
         svg.append("circle")
           .attr("cx", x)
