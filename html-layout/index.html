@@ -1,15 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
-    body { margin: 0; }
-    svg { width: 100%; height: 100vh; }
+    body {
+      margin: 0;
+      background-color: #212529;
+    }
+
+    svg {
+      width: 100%;
+      height: 100vh;
+    }
+
     .tooltip {
       position: absolute;
       padding: 5px 10px;
-      background: rgba(0,0,0,0.7);
+      background: rgba(0, 0, 0, 0.7);
       color: white;
       pointer-events: none;
       border-radius: 4px;
@@ -17,6 +26,7 @@
     }
   </style>
 </head>
+
 <body>
   <svg></svg>
   <div class="tooltip" style="opacity: 0;"></div>
@@ -28,20 +38,24 @@
     const tooltip = d3.select(".tooltip");
 
     const projection = d3.geoMercator()
-      .scale(130)
+      .scale(150)
       .translate([width / 2, height / 1.5]);
 
     const path = d3.geoPath().projection(projection);
 
     const clientData = [
-      { name: 'India', lat: 21.1466, lon: 79.0888, clients: 20 },
-      { name: 'USA', lat: 37.0902, lon: -95.7129, clients: 35 },
-      { name: 'United Kingdom', lat: 55.3781, lon: -3.4360, clients: 15 },
-      { name: 'Japan', lat: 36.2048, lon: 138.2529, clients: 10 },
-      { name: 'Australia', lat: -25.2744, lon: 133.7751, clients: 25 }
+      // { name: 'India', lat: 21.1466, lon: 79.0888, clients: 20 },
+      { name: 'United Kingdom', lat: 55.3781, lon: -3.4360, clients: 2 },
+      { name: 'Germany', lat: 51.1657, lon: 10.4515, clients: 2 },
+      { name: 'Japan', lat: 36.2048, lon: 138.2529, clients: 1 },
+      { name: 'Australia', lat: -25.2744, lon: 133.7751, clients: 2 }
     ];
 
-    // Load GeoJSON world data
+    const officeLocations = [
+      { name: 'Chennai Office', lat: 13.0827, lon: 80.2707 },
+      { name: 'Coimbatore Office', lat: 11.0168, lon: 76.9558 }
+    ];
+
     d3.json("./places.geojson").then(data => {
       // Draw countries
       svg.selectAll("path")
@@ -52,14 +66,15 @@
         .attr("stroke", "#333")
         .attr("stroke-width", 0.5);
 
-      // Draw client circles
-      svg.selectAll("circle")
+      // Draw client data circles
+      svg.selectAll("circle.client")
         .data(clientData)
         .enter()
         .append("circle")
+        .attr("class", "client")
         .attr("cx", d => projection([d.lon, d.lat])[0])
         .attr("cy", d => projection([d.lon, d.lat])[1])
-        .attr("r", d => d.clients * 1.5) // Radius scaling
+        .attr("r", d => d.clients * 10)
         .style("fill", "#ef7717")
         .style("opacity", 0.75)
         .style("stroke", "#fff")
@@ -71,7 +86,28 @@
             .style("top", (event.pageY - 20) + "px");
         })
         .on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
+
+      // Draw office location small dots
+      svg.selectAll("circle.office")
+        .data(officeLocations)
+        .enter()
+        .append("circle")
+        .attr("class", "office")
+        .attr("cx", d => projection([d.lon, d.lat])[0])
+        .attr("cy", d => projection([d.lon, d.lat])[1])
+        .attr("r", 3)
+        .style("fill", "#00bcd4")
+        .style("stroke", "#fff")
+        .style("stroke-width", 1)
+        .on("mouseover", function (event, d) {
+          tooltip.transition().duration(200).style("opacity", .9);
+          tooltip.html(`<strong>${d.name}</strong>`)
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 20) + "px");
+        })
+        .on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
     });
   </script>
 </body>
+
 </html>
